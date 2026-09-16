@@ -18,26 +18,6 @@
   // India Standard Time is fixed at UTC+5:30 year-round.
   const IST_UTC_OFFSET_MIN = 5 * 60 + 30;
 
-  /* ---------------- Starfield ---------------- */
-  function buildStars() {
-    const container = document.getElementById('stars');
-    const count = window.innerWidth < 500 ? 70 : 130;
-    const frag = document.createDocumentFragment();
-    for (let i = 0; i < count; i++) {
-      const s = document.createElement('div');
-      s.className = 'star';
-      const size = Math.random() * 2 + 1;
-      s.style.width = `${size}px`;
-      s.style.height = `${size}px`;
-      s.style.top = `${Math.random() * 70}%`;
-      s.style.left = `${Math.random() * 100}%`;
-      s.style.animationDuration = `${2 + Math.random() * 3}s`;
-      s.style.animationDelay = `${Math.random() * 4}s`;
-      frag.appendChild(s);
-    }
-    container.appendChild(frag);
-  }
-
   /* ---------------- Screen navigation ---------------- */
   function showScreen(id) {
     document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
@@ -53,7 +33,7 @@
   function setupDodgeButton() {
     const wrap = document.getElementById('introButtons');
     const noBtn = document.getElementById('noBtn');
-    const messages = ["Nice try 😏", "Nope!", "Not an option 💫", "Try again 😉", "Sony says yes 🌙"];
+    const messages = ["Nice try 😏", "Nope!", "Not an option 💫", "Try again 😉", "Sony says yes ☀️"];
 
     function randomPointInside() {
       const wrapRect = wrap.getBoundingClientRect();
@@ -232,14 +212,14 @@
     const timeLabel = `${formatHourMinute(ist.hour, ist.minute)} IST`;
 
     document.getElementById('summaryDetails').innerHTML = `
-      <span class="big-emoji">🌙💌</span>
+      <span class="big-emoji">☀️💌</span>
       <div><strong>${dayLabel}</strong></div>
       <div>${timeLabel}</div>
       <div>${state.activity}</div>
       <div class="muted">(${formatHourMinute(state.adelaideHour, state.adelaideMinute)} Adelaide time)</div>
     `;
 
-    const title = encodeURIComponent(`Virtual date with Sony 🌙 — ${state.activity}`);
+    const title = encodeURIComponent(`Virtual date with Sony ☀️ — ${state.activity}`);
     const details = encodeURIComponent(
       `Our first virtual date!\nActivity: ${state.activity}\n(Shown in IST for Sony; ${formatHourMinute(state.adelaideHour, state.adelaideMinute)} Adelaide time)`
     );
@@ -262,7 +242,6 @@
 
   /* ---------------- Init ---------------- */
   function init() {
-    buildStars();
     buildCalendar();
     setupDodgeButton();
     setupActivities();
