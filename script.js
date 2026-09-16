@@ -18,6 +18,26 @@
   // India Standard Time is fixed at UTC+5:30 year-round.
   const IST_UTC_OFFSET_MIN = 5 * 60 + 30;
 
+  /* ---------------- Sea sparkles ---------------- */
+  function buildSparkles() {
+    const container = document.getElementById('sparkles');
+    const count = window.innerWidth < 500 ? 24 : 40;
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < count; i++) {
+      const s = document.createElement('div');
+      s.className = 'sparkle';
+      const size = Math.random() * 2.5 + 1.5;
+      s.style.width = `${size}px`;
+      s.style.height = `${size}px`;
+      s.style.top = `${Math.random() * 90}%`;
+      s.style.left = `${Math.random() * 100}%`;
+      s.style.animationDuration = `${1.5 + Math.random() * 2.5}s`;
+      s.style.animationDelay = `${Math.random() * 3}s`;
+      frag.appendChild(s);
+    }
+    container.appendChild(frag);
+  }
+
   /* ---------------- Screen navigation ---------------- */
   function showScreen(id) {
     document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
@@ -242,6 +262,7 @@
 
   /* ---------------- Init ---------------- */
   function init() {
+    buildSparkles();
     buildCalendar();
     setupDodgeButton();
     setupActivities();

@@ -40,6 +40,29 @@ html, body {
   );
 }
 
+/* ---------- Clouds ---------- */
+.clouds { position: absolute; inset: 0; pointer-events: none; }
+
+.cloud {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.75);
+  border-radius: 100px;
+  filter: blur(2px);
+  box-shadow:
+    24px 4px 0 -6px rgba(255, 255, 255, 0.65),
+    -22px 6px 0 -8px rgba(255, 255, 255, 0.6),
+    46px -6px 0 -10px rgba(255, 255, 255, 0.5);
+}
+
+.c1 { top: 14%; left: -25%; width: 120px; height: 34px; animation: driftCloud 55s linear infinite; }
+.c2 { top: 6%; left: -40%; width: 90px; height: 26px; opacity: 0.8; animation: driftCloud 75s linear infinite; animation-delay: -20s; }
+.c3 { top: 20%; left: -15%; width: 70px; height: 22px; opacity: 0.65; animation: driftCloud 40s linear infinite; animation-delay: -10s; }
+
+@keyframes driftCloud {
+  from { transform: translateX(0); }
+  to { transform: translateX(145vw); }
+}
+
 .sun {
   position: absolute;
   top: 10%;
@@ -138,6 +161,26 @@ html, body {
 @keyframes glimmer {
   0%, 100% { opacity: 0.4; }
   50% { opacity: 0.75; }
+}
+
+.sparkles {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.sparkle {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 250, 220, 0.95);
+  box-shadow: 0 0 4px 1px rgba(255, 245, 200, 0.7);
+  animation: sparkleTwinkle ease-in-out infinite;
+}
+
+@keyframes sparkleTwinkle {
+  0%, 100% { opacity: 0; transform: scale(0.6); }
+  50% { opacity: 0.9; transform: scale(1); }
 }
 
 /* ---------- App layout ---------- */
