@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
+<title>Hey Sony 🌙</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Night sky / sea backdrop, present on every screen -->
+  <div class="sky">
+    <div class="stars" id="stars"></div>
+    <div class="moon"></div>
+    <div class="birds">
+      <svg class="bird b1" viewBox="0 0 60 20"><path d="M0 10 Q15 0 30 10 Q45 0 60 10" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+      <svg class="bird b2" viewBox="0 0 60 20"><path d="M0 10 Q15 0 30 10 Q45 0 60 10" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+      <svg class="bird b3" viewBox="0 0 60 20"><path d="M0 10 Q15 0 30 10 Q45 0 60 10" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+    </div>
+    <div class="sea">
+      <svg class="wave wave1" viewBox="0 0 1200 120" preserveAspectRatio="none"><path d="M0,40 C300,90 900,0 1200,50 L1200,120 L0,120 Z"></path></svg>
+      <svg class="wave wave2" viewBox="0 0 1200 120" preserveAspectRatio="none"><path d="M0,60 C300,20 900,100 1200,40 L1200,120 L0,120 Z"></path></svg>
+      <div class="moon-glimmer"></div>
+    </div>
+  </div>
+
+  <main class="app">
+
+    <!-- 1. Intro -->
+    <section class="screen active" id="screen-intro">
+      <div class="card intro-card">
+        <h1>Hey Sony,<br>ready for our first virtual date? 🌙</h1>
+        <div class="intro-buttons" id="introButtons">
+          <button class="btn btn-yes" id="yesBtn">Yes 💛</button>
+          <button class="btn btn-no" id="noBtn">No</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Calendar -->
+    <section class="screen" id="screen-calendar">
+      <div class="card">
+        <button class="back-btn" data-back="screen-intro">←</button>
+        <h2>Pick a day 📅</h2>
+        <p class="subtitle">Only a few magic dates are open...</p>
+        <div class="calendar" id="calendar"></div>
+      </div>
+    </section>
+
+    <!-- 3. Time -->
+    <section class="screen" id="screen-time">
+      <div class="card">
+        <button class="back-btn" data-back="screen-calendar">←</button>
+        <h2>Pick a time ⏰</h2>
+        <p class="subtitle" id="timeSubtitle"></p>
+        <div class="time-list" id="timeList"></div>
+      </div>
+    </section>
+
+    <!-- 4. Activity -->
+    <section class="screen" id="screen-activity">
+      <div class="card">
+        <button class="back-btn" data-back="screen-time">←</button>
+        <h2>What shall we do? 💫</h2>
+        <div class="activity-grid" id="activityGrid">
+          <button class="activity-card" data-activity="Movie night together 🎬" data-emoji="🎬">
+            <span class="emoji">🎬</span>Watch a movie together
+          </button>
+          <button class="activity-card" data-activity="Dinner over video call 🍝" data-emoji="🍝">
+            <span class="emoji">🍝</span>Dinner over video call
+          </button>
+          <button class="activity-card" data-activity="Play a game online 🎮" data-emoji="🎮">
+            <span class="emoji">🎮</span>Play a game online
+          </button>
+          <button class="activity-card" data-activity="Listening party (trade songs) 🎧" data-emoji="🎧">
+            <span class="emoji">🎧</span>Listening party (trade songs)
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. Summary -->
+    <section class="screen" id="screen-summary">
+      <div class="card summary-card">
+        <h2 class="summary-title">It's a date, Sony! 💌</h2>
+        <div class="summary-details" id="summaryDetails"></div>
+        <a class="btn btn-calendar" id="gcalBtn" target="_blank" rel="noopener">Add to Google Calendar 📆</a>
+        <button class="btn btn-restart" id="restartBtn">Plan another date ↺</button>
+      </div>
+    </section>
+
+  </main>
+
+<script src="script.js"></script>
+</body>
+</html>
