@@ -18,6 +18,11 @@
   // India Standard Time is fixed at UTC+5:30 year-round.
   const IST_UTC_OFFSET_MIN = 5 * 60 + 30;
 
+  // Fill these in after deploying the Google Apps Script web app (see
+  // apps-script/Code.gs). Left blank, the auto-notify step is skipped.
+  const NOTIFY_URL = '';
+  const NOTIFY_SECRET = '';
+
   /* ---------------- Sea sparkles ---------------- */
   function buildSparkles() {
     const container = document.getElementById('sparkles');
@@ -223,6 +228,17 @@
     return `${d.getUTCFullYear()}${pad2(d.getUTCMonth() + 1)}${pad2(d.getUTCDate())}T${pad2(d.getUTCHours())}${pad2(d.getUTCMinutes())}00Z`;
   }
 
+  function notifyLoverCalendar(startMillis, endMillis, titleText, detailsText) {
+    if (!NOTIFY_URL) return; // not configured yet
+    const url = `${NOTIFY_URL}?start=${startMillis}&end=${endMillis}`
+      + `&title=${encodeURIComponent(titleText)}`
+      + `&details=${encodeURIComponent(detailsText)}`
+      + `&secret=${encodeURIComponent(NOTIFY_SECRET)}`;
+    // Fire-and-forget: Apps Script web apps don't send CORS headers, so we
+    // can't read the response, but the request still reaches and runs it.
+    fetch(url, { mode: 'no-cors' }).catch(() => {});
+  }
+
   function buildSummary() {
     const ist = adelaideToIST(state.adelaideHour, state.adelaideMinute);
     const startMillis = ist.utcMillis;
@@ -239,13 +255,13 @@
       <div class="muted">(${formatHourMinute(state.adelaideHour, state.adelaideMinute)} Adelaide time)</div>
     `;
 
-    const title = encodeURIComponent(`Virtual date with Sony ☀️ — ${state.activity}`);
-    const details = encodeURIComponent(
-      `Our first virtual date!\nActivity: ${state.activity}\n(Shown in IST for Sony; ${formatHourMinute(state.adelaideHour, state.adelaideMinute)} Adelaide time)`
-    );
+    const titleText = `Virtual date with Sony ☀️ — ${state.activity}`;
+    const detailsText = `Our first virtual date!\nActivity: ${state.activity}\n(Shown in IST for Sony; ${formatHourMinute(state.adelaideHour, state.adelaideMinute)} Adelaide time)`;
     const dates = `${toGCalUTCString(startMillis)}/${toGCalUTCString(endMillis)}`;
-    const gcalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}&details=${details}`;
+    const gcalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(titleText)}&dates=${dates}&details=${encodeURIComponent(detailsText)}`;
     document.getElementById('gcalBtn').href = gcalUrl;
+
+    notifyLoverCalendar(startMillis, endMillis, titleText, detailsText);
   }
 
   /* ---------------- Restart ---------------- */
