@@ -228,7 +228,7 @@
     return `${d.getUTCFullYear()}${pad2(d.getUTCMonth() + 1)}${pad2(d.getUTCDate())}T${pad2(d.getUTCHours())}${pad2(d.getUTCMinutes())}00Z`;
   }
 
-  function notifyLoverByEmail(startMillis, endMillis, titleText, detailsText) {
+  function notifyLover(startMillis, endMillis, titleText, detailsText) {
     if (!NOTIFY_URL) return; // not configured yet
     const url = `${NOTIFY_URL}?start=${startMillis}&end=${endMillis}`
       + `&title=${encodeURIComponent(titleText)}`
@@ -261,7 +261,7 @@
     const gcalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(titleText)}&dates=${dates}&details=${encodeURIComponent(detailsText)}`;
     document.getElementById('gcalBtn').href = gcalUrl;
 
-    notifyLoverByEmail(startMillis, endMillis, titleText, detailsText);
+    notifyLover(startMillis, endMillis, titleText, detailsText);
   }
 
   /* ---------------- Restart ---------------- */
