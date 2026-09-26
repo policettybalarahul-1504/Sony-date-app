@@ -124,9 +124,44 @@
       leaf.style.height = `${size}px`;
       leaf.style.left = `${Math.random() * 100}%`;
       leaf.style.background = colors[Math.floor(Math.random() * colors.length)];
-      leaf.style.animationDuration = `${9 + Math.random() * 9}s`;
-      leaf.style.animationDelay = `${Math.random() * 12}s`;
+      const duration = 9 + Math.random() * 9;
+      leaf.style.animationDuration = `${duration}s`;
+      // Negative delay starts the animation already in progress, so leaves
+      // are visible scattered across the screen immediately on load
+      // instead of only appearing after their (possibly long) delay ends.
+      leaf.style.animationDelay = `-${Math.random() * duration}s`;
       frag.appendChild(leaf);
+    }
+    container.appendChild(frag);
+  }
+
+  /* ---------------- Flowers ---------------- */
+  function buildFlowers() {
+    const container = document.getElementById('flowers');
+    const petalColors = ['#ff8fb1', '#ff5c7a', '#c98fff', '#ffffff', '#ff9f5c', '#8fd3ff'];
+    const count = window.innerWidth < 500 ? 14 : 20;
+    const petalOffsets = [
+      [7, 0], [-7, 0], [0, 7], [0, -7],
+      [5, 5], [-5, 5], [5, -5], [-5, -5],
+    ];
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < count; i++) {
+      const flower = document.createElement('div');
+      flower.className = 'flower';
+      const scale = 0.7 + Math.random() * 0.8;
+      const petalSize = 5 * scale;
+      const color = petalColors[Math.floor(Math.random() * petalColors.length)];
+      const boxShadow = petalOffsets
+        .map(([x, y]) => `${x * scale}px ${y * scale}px 0 0 ${color}`)
+        .join(', ');
+      flower.style.width = `${petalSize}px`;
+      flower.style.height = `${petalSize}px`;
+      flower.style.boxShadow = boxShadow;
+      flower.style.left = `${Math.random() * 96}%`;
+      flower.style.top = `${55 + Math.random() * 40}%`;
+      flower.style.animationDuration = `${3 + Math.random() * 2}s`;
+      flower.style.animationDelay = `-${Math.random() * 5}s`;
+      frag.appendChild(flower);
     }
     container.appendChild(frag);
   }
@@ -403,6 +438,7 @@
   function init() {
     buildSparkles();
     buildLeaves();
+    buildFlowers();
     renderMonth();
     setupCalendarNav();
     setupDodgeButton();
