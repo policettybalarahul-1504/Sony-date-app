@@ -183,6 +183,31 @@ html, body {
   50% { opacity: 0.9; transform: scale(1); }
 }
 
+/* ---------- Falling leaves ---------- */
+.leaves {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.leaf {
+  position: absolute;
+  top: -8%;
+  /* two rounded corners on opposite sides = a simple leaf silhouette */
+  border-radius: 0 60% 0 60%;
+  animation: leafFall linear infinite;
+}
+
+@keyframes leafFall {
+  0%   { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+  8%   { opacity: 0.85; }
+  30%  { transform: translate(18px, 35vh) rotate(140deg); }
+  60%  { transform: translate(-22px, 70vh) rotate(260deg); }
+  92%  { opacity: 0.85; }
+  100% { transform: translate(10px, 112vh) rotate(380deg); opacity: 0; }
+}
+
 /* ---------- App layout ---------- */
 .app {
   position: relative;

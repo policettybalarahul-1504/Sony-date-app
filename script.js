@@ -110,6 +110,27 @@
     container.appendChild(frag);
   }
 
+  /* ---------------- Falling leaves ---------------- */
+  function buildLeaves() {
+    const container = document.getElementById('leaves');
+    const colors = ['#d97b3f', '#c1440e', '#e8b84b', '#8a9b4f', '#a13d2b', '#caa25c', '#e0703a'];
+    const count = window.innerWidth < 500 ? 14 : 22;
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < count; i++) {
+      const leaf = document.createElement('div');
+      leaf.className = 'leaf';
+      const size = 8 + Math.random() * 8;
+      leaf.style.width = `${size}px`;
+      leaf.style.height = `${size}px`;
+      leaf.style.left = `${Math.random() * 100}%`;
+      leaf.style.background = colors[Math.floor(Math.random() * colors.length)];
+      leaf.style.animationDuration = `${9 + Math.random() * 9}s`;
+      leaf.style.animationDelay = `${Math.random() * 12}s`;
+      frag.appendChild(leaf);
+    }
+    container.appendChild(frag);
+  }
+
   /* ---------------- Screen navigation ---------------- */
   function showScreen(id) {
     document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
@@ -381,6 +402,7 @@
   /* ---------------- Init ---------------- */
   function init() {
     buildSparkles();
+    buildLeaves();
     renderMonth();
     setupCalendarNav();
     setupDodgeButton();
