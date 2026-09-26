@@ -2,34 +2,52 @@
   'use strict';
 
   const state = {
-    day: null,       // 18, 19, or 20
-    adelaideHour: null,
-    adelaideMinute: null,
+    dateIndex: null,  // index into AVAILABLE_DATES
+    windowIndex: null,
+    adelaideMinuteOfDay: null,
     activity: null,
   };
 
-  const YEAR = 2026;
-  const MONTH = 9; // September
-  const AVAILABLE_DAYS = [18, 19, 20];
+  const WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-  // Adelaide (ACST, UTC+9:30) is not yet in daylight saving in September,
-  // so the offset from UTC is fixed at +9:30 for these dates.
-  const ADELAIDE_UTC_OFFSET_MIN = 9 * 60 + 30;
-  // India Standard Time is fixed at UTC+5:30 year-round.
+  // ACST (Adelaide standard time, UTC+9:30) is used until the daylight-saving
+  // switch to ACDT (UTC+10:30) at 2am on the first Sunday of October — which
+  // falls on 4 Oct 2026, right in the middle of this availability window.
+  const ACST_OFFSET_MIN = 9 * 60 + 30;
+  const ACDT_OFFSET_MIN = 10 * 60 + 30;
+  // India Standard Time is fixed at UTC+5:30 year-round (no DST).
   const IST_UTC_OFFSET_MIN = 5 * 60 + 30;
+
+  // The owner's real weekly availability in Adelaide local time, mapped onto
+  // the one week of actual dates it applies to. Each window is in minutes
+  // since midnight that Adelaide calendar date, with the correct standard
+  // vs. daylight offset for that specific window.
+  const AVAILABLE_DATES = [
+    { y: 2026, m: 9, d: 28, windows: [{ start: 18 * 60, end: 24 * 60, offset: ACST_OFFSET_MIN }] },       // Mon 6:00pm-12:00am
+    { y: 2026, m: 9, d: 29, windows: [{ start: 0, end: 90, offset: ACST_OFFSET_MIN }] },                  // Tue 12:00am-1:30am
+    { y: 2026, m: 9, d: 30, windows: [{ start: 18 * 60, end: 24 * 60, offset: ACST_OFFSET_MIN }] },       // Wed 6:00pm-12:00am
+    { y: 2026, m: 10, d: 1, windows: [{ start: 0, end: 90, offset: ACST_OFFSET_MIN }] },                  // Thu 12:00am-1:30am
+    { y: 2026, m: 10, d: 2, windows: [{ start: 0, end: 90, offset: ACST_OFFSET_MIN }] },                  // Fri 12:00am-1:30am
+    { y: 2026, m: 10, d: 3, windows: [{ start: 10 * 60, end: 16 * 60, offset: ACST_OFFSET_MIN }] },       // Sat 10:00am-4:00pm
+    { y: 2026, m: 10, d: 4, windows: [                                                                     // Sun (DST starts 2am today)
+      { start: 0, end: 90, offset: ACST_OFFSET_MIN },        // 12:00am-1:30am, still ACST
+      { start: 10 * 60, end: 16 * 60, offset: ACDT_OFFSET_MIN }, // 10:00am-4:00pm, now ACDT
+    ] },
+  ];
 
   // Push notification topic (https://ntfy.sh/) — the owner's phone is
   // subscribed to this topic in the ntfy app, so posting here pings them.
   const NTFY_TOPIC = 'sonydatenotification';
 
-  function notifyDateSelected(day) {
+  function notifyDateSelected(label) {
     fetch('https://ntfy.sh/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         topic: NTFY_TOPIC,
         title: 'Sony picked a date! 💌',
-        message: `She chose ${day} September 2026 ☀️`,
+        message: `She chose ${label} ☀️`,
         tags: ['calendar', 'sparkling_heart'],
       }),
     }).catch(() => {});
@@ -130,44 +148,34 @@
   }
 
   /* ---------------- Calendar ---------------- */
+  function weekdayName(y, m, d) {
+    return WEEKDAY_NAMES[new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
+  }
+
+  function dateLabel(entry) {
+    return `${weekdayName(entry.y, entry.m, entry.d)}, ${entry.d} ${MONTH_NAMES[entry.m - 1]} ${entry.y}`;
+  }
+
   function buildCalendar() {
     const cal = document.getElementById('calendar');
-    const labels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-    labels.forEach(l => {
+    cal.innerHTML = '';
+
+    AVAILABLE_DATES.forEach((entry, index) => {
       const el = document.createElement('div');
-      el.className = 'cal-label';
-      el.textContent = l;
+      el.className = 'time-slot';
+      el.textContent = dateLabel(entry);
+      el.addEventListener('click', () => {
+        cal.querySelectorAll('.time-slot.selected').forEach(d => d.classList.remove('selected'));
+        el.classList.add('selected');
+        state.dateIndex = index;
+        notifyDateSelected(dateLabel(entry));
+        setTimeout(() => {
+          buildTimeSlots();
+          showScreen('screen-time');
+        }, 180);
+      });
       cal.appendChild(el);
     });
-
-    const firstWeekday = new Date(Date.UTC(YEAR, MONTH - 1, 1)).getUTCDay();
-    const daysInMonth = new Date(Date.UTC(YEAR, MONTH, 0)).getUTCDate();
-
-    for (let i = 0; i < firstWeekday; i++) {
-      const el = document.createElement('div');
-      el.className = 'cal-day empty';
-      cal.appendChild(el);
-    }
-
-    for (let day = 1; day <= daysInMonth; day++) {
-      const el = document.createElement('div');
-      el.className = 'cal-day';
-      el.textContent = day;
-      if (AVAILABLE_DAYS.includes(day)) {
-        el.classList.add('available');
-        el.addEventListener('click', () => {
-          cal.querySelectorAll('.cal-day.selected').forEach(d => d.classList.remove('selected'));
-          el.classList.add('selected');
-          state.day = day;
-          notifyDateSelected(day);
-          setTimeout(() => {
-            buildTimeSlots();
-            showScreen('screen-time');
-          }, 180);
-        });
-      }
-      cal.appendChild(el);
-    }
   }
 
   /* ---------------- Time slots ---------------- */
@@ -178,15 +186,18 @@
     return `${h}:${String(minute).padStart(2, '0')} ${period}`;
   }
 
-  function adelaideToIST(hour, minute) {
+  function adelaideToIST(y, m, d, minuteOfDay, offsetMin) {
     // Build the Adelaide wall-clock instant as if it were UTC, then remove
-    // the Adelaide offset to get the true UTC instant, then add the IST
-    // offset to get IST wall-clock time.
-    const asUtcMillis = Date.UTC(YEAR, MONTH - 1, state.day, hour, minute);
-    const trueUtcMillis = asUtcMillis - ADELAIDE_UTC_OFFSET_MIN * 60000;
+    // the Adelaide offset (ACST or ACDT, whichever applies to this window)
+    // to get the true UTC instant, then add the fixed IST offset.
+    const asUtcMillis = Date.UTC(y, m - 1, d, 0, minuteOfDay);
+    const trueUtcMillis = asUtcMillis - offsetMin * 60000;
     const istMillis = trueUtcMillis + IST_UTC_OFFSET_MIN * 60000;
     const istDate = new Date(istMillis);
     return {
+      y: istDate.getUTCFullYear(),
+      m: istDate.getUTCMonth() + 1,
+      d: istDate.getUTCDate(),
       hour: istDate.getUTCHours(),
       minute: istDate.getUTCMinutes(),
       utcMillis: trueUtcMillis,
@@ -198,28 +209,27 @@
     const subtitle = document.getElementById('timeSubtitle');
     list.innerHTML = '';
 
-    const dayLabel = `${state.day} September 2026`;
-    subtitle.textContent = `${dayLabel} — shown in your time (IST)`;
+    const entry = AVAILABLE_DATES[state.dateIndex];
+    subtitle.textContent = `${dateLabel(entry)} (Adelaide time) — shown in your time (IST)`;
 
-    // Adelaide slots from 12:00 PM to 4:00 PM, every 30 minutes.
-    const startMinutesOfDay = 12 * 60;
-    const endMinutesOfDay = 16 * 60;
-    for (let m = startMinutesOfDay; m < endMinutesOfDay; m += 30) {
-      const adelaideHour = Math.floor(m / 60);
-      const adelaideMinute = m % 60;
-      const ist = adelaideToIST(adelaideHour, adelaideMinute);
+    entry.windows.forEach((win, windowIndex) => {
+      for (let minuteOfDay = win.start; minuteOfDay < win.end; minuteOfDay += 30) {
+        const adelaideHour = Math.floor(minuteOfDay / 60);
+        const adelaideMinute = minuteOfDay % 60;
+        const ist = adelaideToIST(entry.y, entry.m, entry.d, minuteOfDay, win.offset);
 
-      const btn = document.createElement('div');
-      btn.className = 'time-slot';
-      btn.innerHTML = `${formatHourMinute(ist.hour, ist.minute)} IST
-        <span class="adelaide-note">${formatHourMinute(adelaideHour, adelaideMinute)} Adelaide time</span>`;
-      btn.addEventListener('click', () => {
-        state.adelaideHour = adelaideHour;
-        state.adelaideMinute = adelaideMinute;
-        showScreen('screen-activity');
-      });
-      list.appendChild(btn);
-    }
+        const btn = document.createElement('div');
+        btn.className = 'time-slot';
+        btn.innerHTML = `${formatHourMinute(ist.hour, ist.minute)} IST · ${weekdayName(ist.y, ist.m, ist.d)}, ${ist.d} ${MONTH_NAMES[ist.m - 1]}
+          <span class="adelaide-note">${formatHourMinute(adelaideHour, adelaideMinute)} Adelaide time</span>`;
+        btn.addEventListener('click', () => {
+          state.windowIndex = windowIndex;
+          state.adelaideMinuteOfDay = minuteOfDay;
+          showScreen('screen-activity');
+        });
+        list.appendChild(btn);
+      }
+    });
   }
 
   /* ---------------- Activity ---------------- */
@@ -242,23 +252,27 @@
   }
 
   function buildSummary() {
-    const ist = adelaideToIST(state.adelaideHour, state.adelaideMinute);
+    const entry = AVAILABLE_DATES[state.dateIndex];
+    const win = entry.windows[state.windowIndex];
+    const ist = adelaideToIST(entry.y, entry.m, entry.d, state.adelaideMinuteOfDay, win.offset);
     const startMillis = ist.utcMillis;
     const endMillis = startMillis + 60 * 60000; // 1 hour date
 
-    const dayLabel = `${state.day} September 2026`;
+    const istDayLabel = `${weekdayName(ist.y, ist.m, ist.d)}, ${ist.d} ${MONTH_NAMES[ist.m - 1]} ${ist.y}`;
     const timeLabel = `${formatHourMinute(ist.hour, ist.minute)} IST`;
+    const adelaideHour = Math.floor(state.adelaideMinuteOfDay / 60);
+    const adelaideMinute = state.adelaideMinuteOfDay % 60;
 
     document.getElementById('summaryDetails').innerHTML = `
       <span class="big-emoji">☀️💌</span>
-      <div><strong>${dayLabel}</strong></div>
+      <div><strong>${istDayLabel}</strong></div>
       <div>${timeLabel}</div>
       <div>${state.activity}</div>
-      <div class="muted">(${formatHourMinute(state.adelaideHour, state.adelaideMinute)} Adelaide time)</div>
+      <div class="muted">(${formatHourMinute(adelaideHour, adelaideMinute)} ${dateLabel(entry)} Adelaide time)</div>
     `;
 
     const titleText = `Virtual date with Sony ☀️ — ${state.activity}`;
-    const detailsText = `Our first virtual date!\nActivity: ${state.activity}\n(Shown in IST for Sony; ${formatHourMinute(state.adelaideHour, state.adelaideMinute)} Adelaide time)`;
+    const detailsText = `Our first virtual date!\nActivity: ${state.activity}\n(Shown in IST for Sony; ${formatHourMinute(adelaideHour, adelaideMinute)} ${dateLabel(entry)} Adelaide time)`;
     const dates = `${toGCalUTCString(startMillis)}/${toGCalUTCString(endMillis)}`;
     const gcalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(titleText)}&dates=${dates}&details=${encodeURIComponent(detailsText)}`;
     document.getElementById('gcalBtn').href = gcalUrl;
@@ -267,11 +281,11 @@
   /* ---------------- Restart ---------------- */
   function setupRestart() {
     document.getElementById('restartBtn').addEventListener('click', () => {
-      state.day = null;
-      state.adelaideHour = null;
-      state.adelaideMinute = null;
+      state.dateIndex = null;
+      state.windowIndex = null;
+      state.adelaideMinuteOfDay = null;
       state.activity = null;
-      document.querySelectorAll('.cal-day.selected').forEach(d => d.classList.remove('selected'));
+      document.querySelectorAll('#calendar .time-slot.selected').forEach(d => d.classList.remove('selected'));
       showScreen('screen-intro');
     });
   }

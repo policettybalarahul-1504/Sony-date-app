@@ -311,55 +311,6 @@ h2 {
   color: var(--text-light);
 }
 
-/* ---------- Calendar ---------- */
-.calendar {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.cal-label {
-  font-size: 0.7rem;
-  opacity: 0.6;
-  text-align: center;
-  padding-bottom: 4px;
-}
-
-.cal-day {
-  aspect-ratio: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-  font-size: 0.9rem;
-  background: rgba(255,255,255,0.04);
-  color: rgba(244,241,255,0.3);
-  border: 1px solid transparent;
-}
-
-.cal-day.empty { background: transparent; }
-
-.cal-day.available {
-  background: rgba(255, 216, 168, 0.14);
-  color: var(--text-light);
-  border-color: rgba(255, 216, 168, 0.4);
-  cursor: pointer;
-  font-weight: 600;
-  transition: transform 0.15s ease, background 0.15s ease;
-}
-
-.cal-day.available:hover {
-  background: rgba(255, 216, 168, 0.3);
-  transform: translateY(-2px);
-}
-
-.cal-day.selected {
-  background: linear-gradient(135deg, #ffd8a8, #ffb56b);
-  color: #3a2200;
-  border-color: transparent;
-}
-
 /* ---------- Time list ---------- */
 .time-list {
   display: flex;
@@ -382,6 +333,12 @@ h2 {
 .time-slot:hover {
   background: rgba(255, 216, 168, 0.18);
   transform: translateY(-2px);
+}
+
+.time-slot.selected {
+  background: linear-gradient(135deg, #ffd8a8, #ffb56b);
+  color: #3a2200;
+  border-color: transparent;
 }
 
 .time-slot .adelaide-note {
