@@ -2,7 +2,9 @@
   'use strict';
 
   const state = {
-    dateIndex: null,  // index into AVAILABLE_DATES
+    selectedY: null,
+    selectedM: null,
+    selectedD: null,
     windowIndex: null,
     adelaideMinuteOfDay: null,
     activity: null,
@@ -12,29 +14,61 @@
   const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
   // ACST (Adelaide standard time, UTC+9:30) is used until the daylight-saving
-  // switch to ACDT (UTC+10:30) at 2am on the first Sunday of October — which
-  // falls on 4 Oct 2026, right in the middle of this availability window.
+  // switch to ACDT (UTC+10:30) at 2am on the first Sunday of October 2026
+  // (4 Oct 2026) — after that instant every date in range uses ACDT.
   const ACST_OFFSET_MIN = 9 * 60 + 30;
   const ACDT_OFFSET_MIN = 10 * 60 + 30;
+  const DST_START_DATENUM = 20261004; // 4 Oct 2026
+  const DST_START_MINUTE = 2 * 60;    // 2:00am local
+
   // India Standard Time is fixed at UTC+5:30 year-round (no DST).
   const IST_UTC_OFFSET_MIN = 5 * 60 + 30;
 
-  // The owner's real weekly availability in Adelaide local time, mapped onto
-  // the one week of actual dates it applies to. Each window is in minutes
-  // since midnight that Adelaide calendar date, with the correct standard
-  // vs. daylight offset for that specific window.
-  const AVAILABLE_DATES = [
-    { y: 2026, m: 9, d: 28, windows: [{ start: 18 * 60, end: 24 * 60, offset: ACST_OFFSET_MIN }] },       // Mon 6:00pm-12:00am
-    { y: 2026, m: 9, d: 29, windows: [{ start: 0, end: 90, offset: ACST_OFFSET_MIN }] },                  // Tue 12:00am-1:30am
-    { y: 2026, m: 9, d: 30, windows: [{ start: 18 * 60, end: 24 * 60, offset: ACST_OFFSET_MIN }] },       // Wed 6:00pm-12:00am
-    { y: 2026, m: 10, d: 1, windows: [{ start: 0, end: 90, offset: ACST_OFFSET_MIN }] },                  // Thu 12:00am-1:30am
-    { y: 2026, m: 10, d: 2, windows: [{ start: 0, end: 90, offset: ACST_OFFSET_MIN }] },                  // Fri 12:00am-1:30am
-    { y: 2026, m: 10, d: 3, windows: [{ start: 10 * 60, end: 16 * 60, offset: ACST_OFFSET_MIN }] },       // Sat 10:00am-4:00pm
-    { y: 2026, m: 10, d: 4, windows: [                                                                     // Sun (DST starts 2am today)
-      { start: 0, end: 90, offset: ACST_OFFSET_MIN },        // 12:00am-1:30am, still ACST
-      { start: 10 * 60, end: 16 * 60, offset: ACDT_OFFSET_MIN }, // 10:00am-4:00pm, now ACDT
-    ] },
+  // The owner's real weekly availability in Adelaide local time, repeating
+  // every week. Index 0 = Sunday ... 6 = Saturday. Minutes are since
+  // midnight that Adelaide calendar date.
+  const WEEKLY_PATTERN = {
+    0: [{ start: 0, end: 90 }, { start: 10 * 60, end: 16 * 60 }], // Sun: 12:00am-1:30am, 10am-4pm
+    1: [{ start: 18 * 60, end: 24 * 60 }],                        // Mon: 6pm-12am
+    2: [{ start: 0, end: 90 }],                                   // Tue: 12:00am-1:30am
+    3: [{ start: 18 * 60, end: 24 * 60 }],                        // Wed: 6pm-12am
+    4: [{ start: 0, end: 90 }],                                   // Thu: 12:00am-1:30am
+    5: [{ start: 0, end: 90 }],                                   // Fri: 12:00am-1:30am
+    6: [{ start: 10 * 60, end: 16 * 60 }],                        // Sat: 10am-4pm
+  };
+
+  // The calendar covers exactly these 4 months.
+  const CALENDAR_MONTHS = [
+    { y: 2026, m: 9 }, { y: 2026, m: 10 }, { y: 2026, m: 11 }, { y: 2026, m: 12 },
   ];
+
+  function dateNum(y, m, d) { return y * 10000 + m * 100 + d; }
+
+  function adelaideOffsetFor(y, m, d, minuteOfDay) {
+    const n = dateNum(y, m, d);
+    if (n < DST_START_DATENUM) return ACST_OFFSET_MIN;
+    if (n > DST_START_DATENUM) return ACDT_OFFSET_MIN;
+    return minuteOfDay < DST_START_MINUTE ? ACST_OFFSET_MIN : ACDT_OFFSET_MIN;
+  }
+
+  function windowsFor(y, m, d) {
+    const weekday = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+    return (WEEKLY_PATTERN[weekday] || []).map(w => ({
+      start: w.start,
+      end: w.end,
+      offset: adelaideOffsetFor(y, m, d, w.start),
+    }));
+  }
+
+  // "Today" in Adelaide's own calendar, used to grey out past days.
+  function adelaideToday() {
+    const nowUtcMillis = Date.now();
+    // DST_START in UTC = 4 Oct 2026 02:00 ACST = 3 Oct 2026 16:30 UTC.
+    const dstStartUtcMillis = Date.UTC(2026, 9, 3, 16, 30);
+    const offset = nowUtcMillis < dstStartUtcMillis ? ACST_OFFSET_MIN : ACDT_OFFSET_MIN;
+    const local = new Date(nowUtcMillis + offset * 60000);
+    return { y: local.getUTCFullYear(), m: local.getUTCMonth() + 1, d: local.getUTCDate() };
+  }
 
   // Push notification topic (https://ntfy.sh/) — the owner's phone is
   // subscribed to this topic in the ntfy app, so posting here pings them.
@@ -152,29 +186,74 @@
     return WEEKDAY_NAMES[new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
   }
 
-  function dateLabel(entry) {
-    return `${weekdayName(entry.y, entry.m, entry.d)}, ${entry.d} ${MONTH_NAMES[entry.m - 1]} ${entry.y}`;
+  function dateLabel(y, m, d) {
+    return `${weekdayName(y, m, d)}, ${d} ${MONTH_NAMES[m - 1]} ${y}`;
   }
 
-  function buildCalendar() {
+  let monthViewIndex = 0; // index into CALENDAR_MONTHS
+
+  function renderMonth() {
+    const { y, m } = CALENDAR_MONTHS[monthViewIndex];
     const cal = document.getElementById('calendar');
     cal.innerHTML = '';
 
-    AVAILABLE_DATES.forEach((entry, index) => {
+    document.getElementById('monthLabel').textContent = `${MONTH_NAMES[m - 1]} ${y}`;
+    document.getElementById('prevMonthBtn').disabled = monthViewIndex === 0;
+    document.getElementById('nextMonthBtn').disabled = monthViewIndex === CALENDAR_MONTHS.length - 1;
+
+    ['S', 'M', 'T', 'W', 'T', 'F', 'S'].forEach(l => {
       const el = document.createElement('div');
-      el.className = 'time-slot';
-      el.textContent = dateLabel(entry);
-      el.addEventListener('click', () => {
-        cal.querySelectorAll('.time-slot.selected').forEach(d => d.classList.remove('selected'));
-        el.classList.add('selected');
-        state.dateIndex = index;
-        notifyDateSelected(dateLabel(entry));
-        setTimeout(() => {
-          buildTimeSlots();
-          showScreen('screen-time');
-        }, 180);
-      });
+      el.className = 'cal-label';
+      el.textContent = l;
       cal.appendChild(el);
+    });
+
+    const firstWeekday = new Date(Date.UTC(y, m - 1, 1)).getUTCDay();
+    const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    const today = adelaideToday();
+    const todayNum = dateNum(today.y, today.m, today.d);
+
+    for (let i = 0; i < firstWeekday; i++) {
+      const el = document.createElement('div');
+      el.className = 'cal-day empty';
+      cal.appendChild(el);
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const el = document.createElement('div');
+      el.className = 'cal-day';
+      el.textContent = d;
+
+      if (dateNum(y, m, d) < todayNum) {
+        // past day: leave disabled
+      } else {
+        el.classList.add('available');
+        if (state.selectedY === y && state.selectedM === m && state.selectedD === d) {
+          el.classList.add('selected');
+        }
+        el.addEventListener('click', () => {
+          cal.querySelectorAll('.cal-day.selected').forEach(c => c.classList.remove('selected'));
+          el.classList.add('selected');
+          state.selectedY = y;
+          state.selectedM = m;
+          state.selectedD = d;
+          notifyDateSelected(dateLabel(y, m, d));
+          setTimeout(() => {
+            buildTimeSlots();
+            showScreen('screen-time');
+          }, 180);
+        });
+      }
+      cal.appendChild(el);
+    }
+  }
+
+  function setupCalendarNav() {
+    document.getElementById('prevMonthBtn').addEventListener('click', () => {
+      if (monthViewIndex > 0) { monthViewIndex--; renderMonth(); }
+    });
+    document.getElementById('nextMonthBtn').addEventListener('click', () => {
+      if (monthViewIndex < CALENDAR_MONTHS.length - 1) { monthViewIndex++; renderMonth(); }
     });
   }
 
@@ -209,14 +288,15 @@
     const subtitle = document.getElementById('timeSubtitle');
     list.innerHTML = '';
 
-    const entry = AVAILABLE_DATES[state.dateIndex];
-    subtitle.textContent = `${dateLabel(entry)} (Adelaide time) — shown in your time (IST)`;
+    const { selectedY: y, selectedM: m, selectedD: d } = state;
+    subtitle.textContent = `${dateLabel(y, m, d)} (Adelaide time) — shown in your time (IST)`;
 
-    entry.windows.forEach((win, windowIndex) => {
+    const windows = windowsFor(y, m, d);
+    windows.forEach((win, windowIndex) => {
       for (let minuteOfDay = win.start; minuteOfDay < win.end; minuteOfDay += 30) {
         const adelaideHour = Math.floor(minuteOfDay / 60);
         const adelaideMinute = minuteOfDay % 60;
-        const ist = adelaideToIST(entry.y, entry.m, entry.d, minuteOfDay, win.offset);
+        const ist = adelaideToIST(y, m, d, minuteOfDay, win.offset);
 
         const btn = document.createElement('div');
         btn.className = 'time-slot';
@@ -252,9 +332,9 @@
   }
 
   function buildSummary() {
-    const entry = AVAILABLE_DATES[state.dateIndex];
-    const win = entry.windows[state.windowIndex];
-    const ist = adelaideToIST(entry.y, entry.m, entry.d, state.adelaideMinuteOfDay, win.offset);
+    const { selectedY: y, selectedM: m, selectedD: d } = state;
+    const win = windowsFor(y, m, d)[state.windowIndex];
+    const ist = adelaideToIST(y, m, d, state.adelaideMinuteOfDay, win.offset);
     const startMillis = ist.utcMillis;
     const endMillis = startMillis + 60 * 60000; // 1 hour date
 
@@ -268,11 +348,11 @@
       <div><strong>${istDayLabel}</strong></div>
       <div>${timeLabel}</div>
       <div>${state.activity}</div>
-      <div class="muted">(${formatHourMinute(adelaideHour, adelaideMinute)} ${dateLabel(entry)} Adelaide time)</div>
+      <div class="muted">(${formatHourMinute(adelaideHour, adelaideMinute)} ${dateLabel(y, m, d)} Adelaide time)</div>
     `;
 
     const titleText = `Virtual date with Sony ☀️ — ${state.activity}`;
-    const detailsText = `Our first virtual date!\nActivity: ${state.activity}\n(Shown in IST for Sony; ${formatHourMinute(adelaideHour, adelaideMinute)} ${dateLabel(entry)} Adelaide time)`;
+    const detailsText = `Our first virtual date!\nActivity: ${state.activity}\n(Shown in IST for Sony; ${formatHourMinute(adelaideHour, adelaideMinute)} ${dateLabel(y, m, d)} Adelaide time)`;
     const dates = `${toGCalUTCString(startMillis)}/${toGCalUTCString(endMillis)}`;
     const gcalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(titleText)}&dates=${dates}&details=${encodeURIComponent(detailsText)}`;
     document.getElementById('gcalBtn').href = gcalUrl;
@@ -281,11 +361,14 @@
   /* ---------------- Restart ---------------- */
   function setupRestart() {
     document.getElementById('restartBtn').addEventListener('click', () => {
-      state.dateIndex = null;
+      state.selectedY = null;
+      state.selectedM = null;
+      state.selectedD = null;
       state.windowIndex = null;
       state.adelaideMinuteOfDay = null;
       state.activity = null;
-      document.querySelectorAll('#calendar .time-slot.selected').forEach(d => d.classList.remove('selected'));
+      monthViewIndex = 0;
+      renderMonth();
       showScreen('screen-intro');
     });
   }
@@ -293,7 +376,8 @@
   /* ---------------- Init ---------------- */
   function init() {
     buildSparkles();
-    buildCalendar();
+    renderMonth();
+    setupCalendarNav();
     setupDodgeButton();
     setupActivities();
     setupRestart();

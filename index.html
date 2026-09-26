@@ -47,8 +47,13 @@
       <div class="card">
         <button class="back-btn" data-back="screen-intro">←</button>
         <h2>Pick a day 📅</h2>
-        <p class="subtitle">Only a few magic dates are open...</p>
-        <div class="time-list" id="calendar"></div>
+        <p class="subtitle">Pick any day that works for you...</p>
+        <div class="month-header">
+          <button class="month-nav" id="prevMonthBtn" aria-label="Previous month">←</button>
+          <span id="monthLabel"></span>
+          <button class="month-nav" id="nextMonthBtn" aria-label="Next month">→</button>
+        </div>
+        <div class="calendar" id="calendar"></div>
       </div>
     </section>
 
