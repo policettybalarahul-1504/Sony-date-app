@@ -74,14 +74,14 @@
   // subscribed to this topic in the ntfy app, so posting here pings them.
   const NTFY_TOPIC = 'sonydatenotification';
 
-  function notifyDateSelected(label) {
+  function notifyDateConfirmed(istDayLabel, timeLabel, activity) {
     fetch('https://ntfy.sh/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         topic: NTFY_TOPIC,
         title: 'Sony picked a date! 💌',
-        message: `She chose ${label} ☀️`,
+        message: `${istDayLabel}\n${timeLabel}\n${activity}`,
         tags: ['calendar', 'sparkling_heart'],
       }),
     }).catch(() => {});
@@ -237,7 +237,6 @@
           state.selectedY = y;
           state.selectedM = m;
           state.selectedD = d;
-          notifyDateSelected(dateLabel(y, m, d));
           setTimeout(() => {
             buildTimeSlots();
             showScreen('screen-time');
@@ -356,6 +355,8 @@
     const dates = `${toGCalUTCString(startMillis)}/${toGCalUTCString(endMillis)}`;
     const gcalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(titleText)}&dates=${dates}&details=${encodeURIComponent(detailsText)}`;
     document.getElementById('gcalBtn').href = gcalUrl;
+
+    notifyDateConfirmed(istDayLabel, timeLabel, state.activity);
   }
 
   /* ---------------- Restart ---------------- */
