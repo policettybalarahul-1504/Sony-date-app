@@ -74,14 +74,17 @@
   // subscribed to this topic in the ntfy app, so posting here pings them.
   const NTFY_TOPIC = 'sonydatenotification';
 
-  function notifyDateConfirmed(istDayLabel, timeLabel, activity) {
+  function notifyDateConfirmed(shortDayLabel, timeLabel, activity) {
+    // One single line: phones collapse multi-line push previews down to
+    // just the first line unless the notification is expanded/tapped, so
+    // splitting this across lines was hiding the time and activity.
     fetch('https://ntfy.sh/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         topic: NTFY_TOPIC,
         title: 'Sony picked a date! 💌',
-        message: `${istDayLabel}\n${timeLabel}\n${activity}`,
+        message: `${shortDayLabel} · ${timeLabel} · ${activity}`,
         tags: ['calendar', 'sparkling_heart'],
       }),
     }).catch(() => {});
@@ -356,7 +359,8 @@
     const gcalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(titleText)}&dates=${dates}&details=${encodeURIComponent(detailsText)}`;
     document.getElementById('gcalBtn').href = gcalUrl;
 
-    notifyDateConfirmed(istDayLabel, timeLabel, state.activity);
+    const shortDayLabel = `${weekdayName(ist.y, ist.m, ist.d).slice(0, 3)} ${ist.d} ${MONTH_NAMES[ist.m - 1].slice(0, 3)}`;
+    notifyDateConfirmed(shortDayLabel, timeLabel, state.activity);
   }
 
   /* ---------------- Restart ---------------- */
